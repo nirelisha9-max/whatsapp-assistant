@@ -9,6 +9,17 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET!;
 const INSTANCE_ID = parseInt(process.env.GREEN_API_INSTANCE!, 10);
 const OWNER_PHONE = process.env.OWNER_PHONE!;
 
+// Dedup: track recently processed message IDs to avoid double-processing
+// (Green API can fire both outgoing + incoming webhooks for self-chat messages)
+const recentlyProcessed = new Set<string>();
+function isDuplicate(idMessage: string): boolean {
+  if (recentlyProcessed.has(idMessage)) return true;
+  recentlyProcessed.add(idMessage);
+  // Clean up after 60 seconds to avoid memory leak
+  setTimeout(() => recentlyProcessed.delete(idMessage), 60_000);
+  return false;
+}
+
 webhookRouter.post("/:secret", (req: Request, res: Response) => {
   // Validate path secret
   if (req.params.secret !== WEBHOOK_SECRET) {
@@ -45,9 +56,16 @@ webhookRouter.post("/:secret", (req: Request, res: Response) => {
     }
   }
 
+  // Dedup: skip if we already processed this message ID
+  // (prevents double-processing when both outgoing+incoming webhooks fire for the same self-chat message)
+  if (payload.idMessage && isDuplicate(payload.idMessage)) {
+    logger.debug("Skipping duplicate message", { idMessage: payload.idMessage });
+    return res.sendStatus(200);
+  }
+
   // Extract text
   const msgData = payload.messageData;
-  let text = msgData?.textMessageData?.textMessage
+  const text = msgData?.textMessageData?.textMessage
     || msgData?.extendedTextMessageData?.text
     || "";
 
