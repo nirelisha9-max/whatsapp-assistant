@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: whatsapp-assistant
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GREEN_API_URL
+        sync: false
+      - key: GREEN_API_INSTANCE
+        sync: false
+      - key: GREEN_API_TOKEN
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CLAUDE_MODEL
+        value: claude-sonnet-4-6
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: OWNER_NAME
+        value: ניר
+      - key: OWNER_PHONE
+        sync: false
+      - key: PORT
+        value: "10000"
+      - key: TIMEZONE
+        value: Asia/Jerusalem
