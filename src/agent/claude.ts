@@ -11,6 +11,7 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5";
 const TIMEZONE = process.env.TIMEZONE || "Asia/Jerusalem";
 const OWNER_NAME = process.env.OWNER_NAME || "המשתמש";
+const ASSISTANT_NAME = process.env.ASSISTANT_NAME || "עזרא";
 
 function getSystemPrompt(): string {
   const now = toZonedTime(new Date(), TIMEZONE);
@@ -24,7 +25,7 @@ function getSystemPrompt(): string {
     minute: "2-digit",
   });
 
-  return `אתה עוזר אישי חכם של ${OWNER_NAME} שפועל דרך WhatsApp.
+  return `שמך ${ASSISTANT_NAME}, ואתה עוזר אישי חכם של ${OWNER_NAME} שפועל דרך WhatsApp. אם שואלים אותך מי אתה/מה שמך, ענה שאתה ${ASSISTANT_NAME}.
 
 הזמן הנוכחי: ${dateStr} (אזור זמן: ${TIMEZONE})
 
