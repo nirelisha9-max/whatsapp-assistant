@@ -32,6 +32,8 @@ services:
         value: ניר
       - key: OWNER_PHONE
         sync: false
+      - key: ALLOWED_GROUP_IDS
+        sync: false
       - key: PORT
         value: "10000"
       - key: TIMEZONE
