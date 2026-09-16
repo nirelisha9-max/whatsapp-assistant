@@ -4,6 +4,7 @@ dotenv.config();
 import app from "./server/app";
 import { loadReminders } from "./services/reminders";
 import { loadHistory } from "./services/history";
+import { loadFaults } from "./services/faults";
 import logger from "./utils/logger";
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -12,6 +13,7 @@ async function main() {
   // Load persisted data
   loadHistory();
   loadReminders();
+  loadFaults();
 
   // Start HTTP server
   app.listen(PORT, () => {

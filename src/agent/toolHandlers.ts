@@ -3,6 +3,7 @@ import { formatDateHebrew } from "../utils/dateParser";
 import * as remindersService from "../services/reminders";
 import * as gmailService from "../services/gmail";
 import * as calendarService from "../services/calendar";
+import * as faultsService from "../services/faults";
 import logger from "../utils/logger";
 
 export async function executeToolCall(
@@ -102,6 +103,37 @@ export async function executeToolCall(
         const durationMinutes = input.duration_minutes as number;
         const slots = await calendarService.findFreeTime(date, durationMinutes);
         return { success: true, data: slots };
+      }
+
+      case "log_fault": {
+        const description = input.description as string;
+        const reporterName = input.reporter_name as string;
+        const location = input.location as string | undefined;
+        const fault = faultsService.logFault(chatId, description, reporterName, location);
+        return {
+          success: true,
+          data: {
+            id: fault.id,
+            description: fault.description,
+            reporter_name: fault.reporterName,
+            location: fault.location,
+            created_at: fault.createdAt,
+          },
+        };
+      }
+
+      case "list_faults": {
+        const list = faultsService.listFaults(chatId);
+        return {
+          success: true,
+          data: list.map((f) => ({
+            id: f.id,
+            description: f.description,
+            reporter_name: f.reporterName,
+            location: f.location,
+            created_at: f.createdAt,
+          })),
+        };
       }
 
       default:
