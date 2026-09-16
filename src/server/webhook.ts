@@ -10,6 +10,13 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET!;
 const INSTANCE_ID = parseInt(process.env.GREEN_API_INSTANCE!, 10);
 const OWNER_PHONE = process.env.OWNER_PHONE!;
 
+// Group chats the bot is allowed to participate in (any member can trigger it there).
+// Comma-separated group chat IDs, e.g. "120363023951034197@g.us,120363099999999999@g.us"
+const ALLOWED_GROUP_IDS = (process.env.ALLOWED_GROUP_IDS || "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
+
 // Dedup: track recently processed message IDs to avoid double-processing
 // (Green API can fire both outgoing + incoming webhooks for self-chat messages)
 const recentlyProcessed = new Set<string>();
@@ -35,25 +42,40 @@ webhookRouter.post("/:secret", (req: Request, res: Response) => {
     return res.sendStatus(200);
   }
 
-  const isSelfMessage =
-    payload.typeWebhook === "outgoingMessageReceived" &&
-    payload.senderData?.chatId?.replace(/@c\.us$/, "") === OWNER_PHONE;
-
-  const isIncoming = payload.typeWebhook === "incomingMessageReceived";
-
-  if (!isIncoming && !isSelfMessage) {
-    return res.sendStatus(200);
-  }
-
   const { chatId, sender, senderName } = payload.senderData || {};
   if (!chatId || !sender) return res.sendStatus(200);
 
-  // For incoming: only from owner. For self-message: always allowed.
+  const isGroupChat = chatId.endsWith("@g.us");
+  const isAllowedGroup = isGroupChat && ALLOWED_GROUP_IDS.includes(chatId);
+
+  const isSelfMessage =
+    payload.typeWebhook === "outgoingMessageReceived" &&
+    chatId.replace(/@c\.us$/, "") === OWNER_PHONE;
+
+  // Owner posting inside an allowed group also fires as "outgoing".
+  const isOwnerMessageInGroup =
+    payload.typeWebhook === "outgoingMessageReceived" && isAllowedGroup;
+
+  const isIncoming = payload.typeWebhook === "incomingMessageReceived";
+
+  if (!isIncoming && !isSelfMessage && !isOwnerMessageInGroup) {
+    return res.sendStatus(200);
+  }
+
   if (isIncoming) {
-    const senderPhone = sender.replace(/@c\.us$/, "").replace(/@s\.whatsapp\.net$/, "");
-    if (senderPhone !== OWNER_PHONE) {
-      logger.debug("Ignoring message from non-owner", { sender });
-      return res.sendStatus(200);
+    if (isGroupChat) {
+      // Any member may trigger the bot, but only inside an allowed group.
+      if (!isAllowedGroup) {
+        logger.debug("Ignoring message from non-allowed group", { chatId });
+        return res.sendStatus(200);
+      }
+    } else {
+      // Private chat: only the owner's own messages.
+      const senderPhone = sender.replace(/@c\.us$/, "").replace(/@s\.whatsapp\.net$/, "");
+      if (senderPhone !== OWNER_PHONE) {
+        logger.debug("Ignoring message from non-owner", { sender });
+        return res.sendStatus(200);
+      }
     }
   }
 
@@ -72,17 +94,20 @@ webhookRouter.post("/:secret", (req: Request, res: Response) => {
 
   if (!text.trim()) return res.sendStatus(200);
 
-  // For self-messages: use owner's chatId as destination
+  // For self-messages: use owner's chatId as destination. Group messages reply into the group.
   const respondTo = isSelfMessage ? `${OWNER_PHONE}@c.us` : chatId;
+
+  // In a group, prefix the sender's name so Ezra knows who's talking.
+  const messageText = isGroupChat && !isSelfMessage ? `[${senderName || sender}]: ${text}` : text;
 
   // Respond immediately, process async
   res.sendStatus(200);
 
-  logger.info("Message received", { type: payload.typeWebhook, text: text.substring(0, 80) });
+  logger.info("Message received", { type: payload.typeWebhook, text: text.substring(0, 80), chatId });
 
   setImmediate(async () => {
     try {
-      await processMessage(respondTo, senderName || "ניר", text);
+      await processMessage(respondTo, senderName || "ניר", messageText);
     } catch (err) {
       logger.error("Error processing message", { err });
       try {
