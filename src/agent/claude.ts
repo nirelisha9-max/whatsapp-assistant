@@ -12,8 +12,9 @@ const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5";
 const TIMEZONE = process.env.TIMEZONE || "Asia/Jerusalem";
 const OWNER_NAME = process.env.OWNER_NAME || "המשתמש";
 const ASSISTANT_NAME = process.env.ASSISTANT_NAME || "עזרא";
+const GROUP_CONTEXT = process.env.GROUP_CONTEXT || "";
 
-function getSystemPrompt(): string {
+function getSystemPrompt(isGroupChat: boolean): string {
   const now = toZonedTime(new Date(), TIMEZONE);
   const dateStr = now.toLocaleString("he-IL", {
     timeZone: TIMEZONE,
@@ -43,7 +44,9 @@ function getSystemPrompt(): string {
 - כשמציגים מיילים או אירועים, פרמט בצורה קריאה ונוחה
 - אל תדפיס JSON — תרגם לעברית/אנגלית קריאה
 - אם המשתמש אומר "תמחק שיחה" או "תאפס" — אמור לו לשלוח /clear
-- זה עלול להיות צ'אט קבוצתי עם כמה משתתפים — הודעה שמתחילה ב-"[שם]:" מציינת מי שלח אותה. שים לב מי פונה אליך בכל הודעה`;
+- זה עלול להיות צ'אט קבוצתי עם כמה משתתפים — הודעה שמתחילה ב-"[שם]:" מציינת מי שלח אותה. שים לב מי פונה אליך בכל הודעה${
+    isGroupChat && GROUP_CONTEXT ? `\n\nהתפקיד שלך בקבוצה הזו:\n${GROUP_CONTEXT}` : ""
+  }`;
 }
 
 export async function processMessage(chatId: string, senderName: string, text: string): Promise<void> {
@@ -56,6 +59,7 @@ export async function processMessage(chatId: string, senderName: string, text: s
   }
 
   const history = getHistory(chatId);
+  const isGroupChat = chatId.endsWith("@g.us");
 
   // Build messages array for Claude
   const messages: Anthropic.MessageParam[] = [
@@ -69,7 +73,7 @@ export async function processMessage(chatId: string, senderName: string, text: s
   let response = await client.messages.create({
     model: MODEL,
     max_tokens: 2048,
-    system: getSystemPrompt(),
+    system: getSystemPrompt(isGroupChat),
     tools,
     messages,
   });
@@ -105,7 +109,7 @@ export async function processMessage(chatId: string, senderName: string, text: s
     response = await client.messages.create({
       model: MODEL,
       max_tokens: 2048,
-      system: getSystemPrompt(),
+      system: getSystemPrompt(isGroupChat),
       tools,
       messages,
     });
