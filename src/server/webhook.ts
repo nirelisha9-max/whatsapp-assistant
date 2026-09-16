@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { WebhookPayload } from "../types";
 import { processMessage } from "../agent/claude";
+import { sendMessage } from "../services/whatsapp";
 import logger from "../utils/logger";
 
 export const webhookRouter = Router();
@@ -84,6 +85,12 @@ webhookRouter.post("/:secret", (req: Request, res: Response) => {
       await processMessage(respondTo, senderName || "ניר", text);
     } catch (err) {
       logger.error("Error processing message", { err });
+      try {
+        const detail = err instanceof Error ? err.message : String(err);
+        await sendMessage(respondTo, `⚠️ קרתה שגיאה בעיבוד ההודעה:\n${detail}`);
+      } catch (notifyErr) {
+        logger.error("Failed to notify user of processing error", { notifyErr });
+      }
     }
   });
 });

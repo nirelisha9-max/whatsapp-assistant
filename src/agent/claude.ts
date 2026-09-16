@@ -8,7 +8,7 @@ import { ConversationMessage } from "../types";
 import logger from "../utils/logger";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
+const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5";
 const TIMEZONE = process.env.TIMEZONE || "Asia/Jerusalem";
 const OWNER_NAME = process.env.OWNER_NAME || "המשתמש";
 
