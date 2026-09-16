@@ -21,6 +21,15 @@ export interface WebhookPayload {
   };
 }
 
+export interface Fault {
+  id: string;
+  chatId: string;
+  description: string;
+  reporterName: string;
+  location?: string;
+  createdAt: string; // ISO 8601
+}
+
 export interface Reminder {
   id: string;
   chatId: string;
@@ -46,7 +55,9 @@ export type ToolName =
   | "send_email"
   | "list_calendar_events"
   | "create_calendar_event"
-  | "find_free_time";
+  | "find_free_time"
+  | "log_fault"
+  | "list_faults";
 
 export interface ToolResult {
   success: boolean;

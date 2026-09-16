@@ -169,4 +169,36 @@ export const tools: Anthropic.Tool[] = [
       required: ["date", "duration_minutes"],
     },
   },
+  {
+    name: "log_fault",
+    description:
+      "Log a fault/issue reported in this chat so it can be consolidated later. Use this whenever someone reports a problem or fault that should be tracked.",
+    input_schema: {
+      type: "object",
+      properties: {
+        description: {
+          type: "string",
+          description: "Description of the fault/issue",
+        },
+        reporter_name: {
+          type: "string",
+          description: "Name of the person who reported it",
+        },
+        location: {
+          type: "string",
+          description: "Optional location of the fault",
+        },
+      },
+      required: ["description", "reporter_name"],
+    },
+  },
+  {
+    name: "list_faults",
+    description: "List all faults/issues logged so far in this chat, for consolidating into a summary.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ];
