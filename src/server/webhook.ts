@@ -66,7 +66,9 @@ webhookRouter.post("/:secret", (req: Request, res: Response) => {
     if (isGroupChat) {
       // Any member may trigger the bot, but only inside an allowed group.
       if (!isAllowedGroup) {
-        logger.debug("Ignoring message from non-allowed group", { chatId });
+        // Logged at info level (not debug) so the group's chat ID is visible in
+        // production logs when setting up ALLOWED_GROUP_IDS for the first time.
+        logger.info("Ignoring message from non-allowed group", { chatId, senderName });
         return res.sendStatus(200);
       }
     } else {
