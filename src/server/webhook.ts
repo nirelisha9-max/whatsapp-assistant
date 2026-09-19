@@ -99,8 +99,15 @@ webhookRouter.post("/:secret", (req: Request, res: Response) => {
   // For self-messages: use owner's chatId as destination. Group messages reply into the group.
   const respondTo = isSelfMessage ? `${OWNER_PHONE}@c.us` : chatId;
 
-  // In a group, prefix the sender's name so Ezra knows who's talking.
-  const messageText = isGroupChat && !isSelfMessage ? `[${senderName || sender}]: ${text}` : text;
+  // In a group, prefix the sender so Ezra knows who's talking. The owner is tagged
+  // explicitly (by phone number, not display name) so the model can reliably tell
+  // whether a request came from the owner.
+  const senderPhone = sender.replace(/@c\.us$/, "").replace(/@s\.whatsapp\.net$/, "");
+  const isOwnerSender = senderPhone === OWNER_PHONE;
+  const messageText =
+    isGroupChat && !isSelfMessage
+      ? `[${isOwnerSender ? "OWNER" : senderName || sender}]: ${text}`
+      : text;
 
   // Respond immediately, process async
   res.sendStatus(200);
